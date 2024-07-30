@@ -31,7 +31,7 @@ from fcn.test_common import _vis_minibatch_segmentation
 from featupxdepth import networkFxD, mem_usage
 
 if __name__ == '__main__':
-    cfg_from_file("experiments/cfgs/seg_resnet34_8s_embedding_cosine_color_tabletop.yml")
+    cfg_from_file("/content/UnseenObjectClustering/experiments/cfgs/seg_resnet34_8s_embedding_cosine_color_tabletop.yml")
     if len(cfg.TEST.CLASSES) == 0:
         cfg.TEST.CLASSES = cfg.TRAIN.CLASSES
     np.random.seed(cfg.RNG_SEED)
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         print(f"\n{image.shape=}\t{rgb.shape=}\t{label.shape=}\n")
 
         network.load_dino(DEVICE)
-        network.load_featup("D:/CODE/Unseen-Object-Segmentation/checkpoints/dinov2_jbu_stack_cocostuff.ckpt", DEVICE)
+        network.load_featup("/content/UnseenObjectClustering/data/checkpoints/dinov2_jbu_stack_cocostuff.ckpt", DEVICE)
         mem_usage(DEVICE)
         lr_feats_rgb = network.dino(rgb.to(DEVICE))
         hr_feats_rgb = network.featupUpsamplper(lr_feats_rgb.to(DEVICE), rgb.to(DEVICE))
@@ -100,6 +100,7 @@ if __name__ == '__main__':
             del lr_feats_rgb_crop
             rgb_crop.detach().cpu()
             torch.cuda.empty_cache()
+            network.del_featup()
             mem_usage(DEVICE)
             if hr_feats_rgb_crop.shape[2] != rgb_crop.shape[2]:
                 hr_feats_rgb_crop = torch.nn.functional.interpolate(hr_feats_rgb_crop, rgb_crop.shape[2:], mode="bilinear").detach().cpu()
@@ -110,9 +111,8 @@ if __name__ == '__main__':
         _vis_minibatch_segmentation(rgb, depth, label, out_label, out_label_refined, normalized_hr_features, 
                 selected_pixels=selected_pixels, bbox=None)
         
+        mem_usage(DEVICE)
         break
-        if i==100:
-            break
 
     # # sum the values with same keys
     # print('========================================================')
