@@ -13,8 +13,8 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 import datasets
-import pcl
-
+#import pcl
+from pypcd4 import PointCloud
 from fcn.config import cfg
 from utils.blob import chromatic_transform, add_noise
 from utils import mask as util_
@@ -93,7 +93,9 @@ class OSDObject(data.Dataset, datasets.imdb):
         if cfg.INPUT == 'DEPTH' or cfg.INPUT == 'RGBD':
             pcd_filename = filename.replace('image_color', 'pcd')
             pcd_filename = pcd_filename.replace('png', 'pcd')
-            pcloud = pcl.load(pcd_filename).to_array()
+            # pcloud = pcl.load(pcd_filename).to_array()
+            pcloud = PointCloud.from_path(pcd_filename)
+            pcloud = pcloud.numpy(("x", "y", "z"))
             pcloud[np.isnan(pcloud)] = 0
             xyz_img = pcloud.reshape((self._height, self._width, 3))
             depth_blob = torch.from_numpy(xyz_img).permute(2, 0, 1)
