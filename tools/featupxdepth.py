@@ -19,7 +19,7 @@ def networkFxD():
     return network
 
 def mem_usage(DEVICE):
-    print(f"\nAllocated: {torch.cuda.memory_allocated(DEVICE)/(10**9):.2f} GB(s) Resereved: {torch.cuda.memory_reserved(DEVICE)/(10**9):.2f} GB(s)\n")
+    print(f"\nAllocated: {torch.cuda.memory_allocated(DEVICE)/(10**9):.3f} GB(s) Resereved: {torch.cuda.memory_reserved(DEVICE)/(10**9):.3f} GB(s)\n")
 
 class FxD():
 
@@ -34,17 +34,19 @@ class FxD():
         }
         self.encoder = 'vitl'
     
-    def load_dino(self):
+    def load_dino(self, device):
         self.dinov2_model, _, self.dim = get_featurizer(self.model_type, self.activation_type, num_classes=self.num_classes)
         for p in self.dinov2_model.parameters():
             p.requires_grad = False
+        self.dinov2_model = self.dinov2_model.to(device)
 
-    def load_featup(self, path):
+    def load_featup(self, path, device):
         # path to dinov2_jbu_stack_cocostuff.ckpt
         self.featup_upsampler = get_upsampler(self.upsampler_type, self.dim)
         checkpoint = torch.load(path)
         checkpoint['state_dict'] = OrderedDict([(".".join(k.split('.')[1:]),v) for k,v in checkpoint['state_dict'].items()])
         self.featup_upsampler.load_state_dict(checkpoint['state_dict'])
+        self.featup_upsampler = self.featup_upsampler.to(device)
 
     def load_depth(self, path):
         # path to file depth_anything_vitl14.pth
@@ -76,6 +78,9 @@ class FxD():
     def unit_vec_feats(self, feats):
         magnitude = torch.norm(feats, p=2, dim=1, keepdim=True) + 1e-8 # TO avoid division by 0
         return feats / magnitude
+
+    def fuse(self, depth_feats, rgb_feats):
+        return rgb_feats + depth_feats
 
     def send_all_models_to_device(self, device):
         self.dinov2_model     = self.dinov2_model.to(device)
