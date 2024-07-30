@@ -18,45 +18,52 @@ def networkFxD():
     network = FxD()
     return network
 
+def mem_usage(DEVICE):
+    print(f"\nAllocated: {torch.cuda.memory_allocated(DEVICE)/(10**9):.2f} GB(s) Resereved: {torch.cuda.memory_reserved(DEVICE)/(10**9):.2f} GB(s)\n")
+
 class FxD():
+
     def __init__(self):
-        model_type= "dinov2"
-        activation_type= "token"
-        num_classes=1000
-        self.dinov2_model, _, dim = get_featurizer(model_type, activation_type, num_classes=num_classes)
+        self.model_type= "dinov2"
+        self.activation_type= "token"
+        self.num_classes=1000
+        self.upsampler_type= "jbu_stack"
+        
+        self.model_configs = {
+        'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]}
+        }
+        self.encoder = 'vitl'
+    
+    def load_dino(self):
+        self.dinov2_model, _, self.dim = get_featurizer(self.model_type, self.activation_type, num_classes=self.num_classes)
         for p in self.dinov2_model.parameters():
             p.requires_grad = False
-        upsampler_type= "jbu_stack"
-        self.featup_upsampler = get_upsampler(upsampler_type, dim)
-        checkpoint = torch.load("D:/CODE/Unseen-Object-Segmentation/checkpoints/dinov2_jbu_stack_cocostuff.ckpt")
+
+    def load_featup(self, path):
+        # path to dinov2_jbu_stack_cocostuff.ckpt
+        self.featup_upsampler = get_upsampler(self.upsampler_type, self.dim)
+        checkpoint = torch.load(path)
         checkpoint['state_dict'] = OrderedDict([(".".join(k.split('.')[1:]),v) for k,v in checkpoint['state_dict'].items()])
         self.featup_upsampler.load_state_dict(checkpoint['state_dict'])
-        # model_configs = {
-        # 'vitl': {'encoder': 'vitl', 'features': 256, 'out_channels': [256, 512, 1024, 1024]}
-        # }
-        # encoder = 'vitl'
-        # self.depth_anything = DepthAnything(model_configs[encoder])
-        # self.depth_anything.load_state_dict(torch.load(f'D:/CODE/Unseen-Object-Segmentation/checkpoints/depth_anything_vitl14.pth'))
-   
-    def send_model_to_device(self, device):
-        self.dinov2_model     = self.dinov2_model.to(device)
-        self.featup_upsampler = self.featup_upsampler.to(device)
-        # self.depth_anything   = self.depth_anything.to(device)
+
+    def load_depth(self, path):
+        # path to file depth_anything_vitl14.pth
+        self.depth_anything = DepthAnything(self.model_configs[self.encoder])
+        self.depth_anything.load_state_dict(torch.load(path))
 
     def dino(self, image_tensor):
        return self.dinov2_model(image_tensor)
-    
-    def del_dino(self):
-        del self.dinov2_model
-        torch.cuda.empty_cache()
-    
+        
     def featupUpsamplper(self, lr_feats, image_tensor):
        return self.featup_upsampler(lr_feats, image_tensor)
     
     def depthanything(self, image_tensor, hw):
         h, w = hw
         depthout = self.depth_anything(image_tensor)
-        depth = F.interpolate(depthout[None], (h, w), mode='bilinear', align_corners=False)[0, 0]
+        return self.depth_post_processing(depthout,h,w)
+    
+    def depth_post_processing(depth_output,h,w):
+        depth = F.interpolate(depth_output[None], (h, w), mode='bilinear', align_corners=False)[0, 0]
         raw_depth = Image.fromarray(depth.cpu().numpy().astype('uint16'))
         tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
         raw_depth.save(tmp.name)
@@ -65,3 +72,24 @@ class FxD():
         colored_depth = Image.fromarray(cv2.applyColorMap(depth, cv2.COLORMAP_INFERNO)[:, :, ::-1])
         
         return colored_depth
+    
+    def unit_vec_feats(self, feats):
+        magnitude = torch.norm(feats, p=2, dim=1, keepdim=True) + 1e-8 # TO avoid division by 0
+        return feats / magnitude
+
+    def send_all_models_to_device(self, device):
+        self.dinov2_model     = self.dinov2_model.to(device)
+        self.featup_upsampler = self.featup_upsampler.to(device)
+        self.depth_anything   = self.depth_anything.to(device)
+    
+    def del_dino(self):
+        del self.dinov2_model
+        torch.cuda.empty_cache()
+
+    def del_featup(self):
+        del self.featup_upsampler
+        torch.cuda.empty_cache()
+
+    def del_depth(self):
+        del self.depth_anything
+        torch.cuda.empty_cache()
