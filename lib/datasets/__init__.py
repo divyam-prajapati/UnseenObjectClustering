@@ -9,3 +9,4 @@ from .ocid_object import OCIDObject
 
 import os.path as osp
 ROOT_DIR = osp.join(osp.dirname(__file__), '..', '..')
+DATA_DIR = "/content/"
