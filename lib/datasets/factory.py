@@ -14,21 +14,21 @@ import numpy as np
 # tabletop object dataset
 for split in ['train', 'test', 'all']:
     name = 'tabletop_object_{}'.format(split)
-    print(name)
+    # print(name)
     __sets[name] = (lambda split=split:
             datasets.TableTopObject(split))
 
 # OSD object dataset
 for split in ['test']:
     name = 'osd_object_{}'.format(split)
-    print(name)
+    # print(name)
     __sets[name] = (lambda split=split:
             datasets.OSDObject(split))
 
 # OCID object dataset
 for split in ['test']:
     name = 'ocid_object_{}'.format(split)
-    print(name)
+    # print(name)
     __sets[name] = (lambda split=split:
             datasets.OCIDObject(split))
 
