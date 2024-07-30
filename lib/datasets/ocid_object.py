@@ -13,6 +13,11 @@ import cv2
 import glob
 import matplotlib.pyplot as plt
 import datasets
+
+from PIL import Image
+import torchvision.transforms as T
+from featup.util import norm, unnorm
+
 import pcl
 from pathlib import Path
 from fcn.config import cfg
@@ -110,6 +115,16 @@ class OCIDObject(data.Dataset, datasets.imdb):
             xyz_img = pcloud.reshape((self._height, self._width, 3))
             depth_blob = torch.from_numpy(xyz_img).permute(2, 0, 1)
             sample['depth'] = depth_blob
+
+        # RGB IMG - DINO + FEATUP
+        image = Image.open(filename).convert('RGB')
+        featup_transform = T.Compose([
+            T.Resize(224),
+            T.CenterCrop((224, 224)),
+            T.ToTensor(),
+            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        sample['rgb'] = featup_transform(image)
 
         return sample
 
