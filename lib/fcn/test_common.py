@@ -10,7 +10,7 @@ import cv2
 import matplotlib.pyplot as plt
 from fcn.config import cfg
 from utils.mask import visualize_segmentation
-
+from featup.util import norm, unnorm
 
 def normalize_descriptor(res, stats=None):
     """
@@ -228,7 +228,7 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
         depth_blob = depth.cpu().numpy()
         m = 3
         n = 3
-
+        
     num = im_blob.shape[0]
     height = im_blob.shape[2]
     width = im_blob.shape[3]
@@ -242,12 +242,14 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
     for i in range(num):
 
         # image
-        im = im_blob[i, :3, :, :].copy()
-        im = im.transpose((1, 2, 0)) * 255.0
-        im += cfg.PIXEL_MEANS
-        im = im[:, :, (2, 1, 0)]
-        im = np.clip(im, 0, 255)
-        im = im.astype(np.uint8)
+        # im = im_blob[i, :3, :, :].copy()
+        # im = im.transpose((1, 2, 0)) * 255.0
+        # im += cfg.PIXEL_MEANS
+        # im = im[:, :, (2, 1, 0)]
+        # im = np.clip(im, 0, 255)
+        # im = im.astype(np.uint8)
+
+        im = unnorm(image).permute(0, 2, 3, 1).detach().cpu().numpy()
 
         '''
         if out_label_refined is not None:
