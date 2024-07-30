@@ -26,7 +26,7 @@ def seg2bmap(seg,width=None,height=None):
      David Martin <dmartin@eecs.berkeley.edu>
      January 2003
  """
-
+    np.bool = np.bool_
     seg = seg.astype(np.bool)
     seg[seg>0] = 1
 
