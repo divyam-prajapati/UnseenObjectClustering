@@ -16,9 +16,9 @@ import datasets
 
 from PIL import Image
 import torchvision.transforms as T
-from featup.util import norm, unnorm
 
-import pcl
+# import pcl
+from pypcd4 import PointCloud
 from pathlib import Path
 from fcn.config import cfg
 from utils.blob import chromatic_transform, add_noise
@@ -110,7 +110,9 @@ class OCIDObject(data.Dataset, datasets.imdb):
         if cfg.INPUT == 'DEPTH' or cfg.INPUT == 'RGBD':
             pcd_filename = filename.replace('rgb', 'pcd')
             pcd_filename = pcd_filename.replace('png', 'pcd')
-            pcloud = pcl.load(pcd_filename).to_array()
+            # pcloud = pcl.load(pcd_filename).to_array()
+            pcloud = PointCloud.from_path(pcd_filename)
+            pcloud = pcloud.numpy(("x", "y", "z"))
             pcloud[np.isnan(pcloud)] = 0
             xyz_img = pcloud.reshape((self._height, self._width, 3))
             depth_blob = torch.from_numpy(xyz_img).permute(2, 0, 1)
