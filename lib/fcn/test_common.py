@@ -262,12 +262,13 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
         start += 1
         plt.imshow(im)
         ax.set_title('image')
-        plt.axis('off')
+        # plt.axis('off')
 
         ax = fig.add_subplot(m, n, start)
         start += 1
         plt.imshow(im)
-        plt.axis('off')
+        ax.set_title('selected pixels')
+        # plt.axis('off')
 
         if bbox is not None:
             boxes = bbox[i].numpy()
@@ -300,17 +301,17 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
             start += 1
             plt.imshow(depth[0])
             ax.set_title('depth X')
-            plt.axis('off')
+            #plt.axis('off')
             ax = fig.add_subplot(m, n, start)
             start += 1
             plt.imshow(depth[1])
             ax.set_title('depth Y')
-            plt.axis('off')
+            #plt.axis('off')
             ax = fig.add_subplot(m, n, start)
             start += 1
             plt.imshow(depth[2])
             ax.set_title('depth Z')
-            plt.axis('off')
+            #plt.axis('off')
 
         # show label
         if label is not None:
@@ -319,7 +320,7 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
             start += 1
             plt.imshow(label)
             ax.set_title('gt label')
-            plt.axis('off')
+            #plt.axis('off')
 
         # show out label
         if out_label is not None:
@@ -328,7 +329,7 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
             start += 1
             plt.imshow(label)
             ax.set_title('out label')
-            plt.axis('off')
+            #plt.axis('off')
 
         # show out label refined
         if out_label_refined is not None:
@@ -337,7 +338,7 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
             start += 1
             plt.imshow(label)
             ax.set_title('out label refined')
-            plt.axis('off')
+            #plt.axis('off')
 
         if features is not None:
             im = torch.cuda.FloatTensor(height, width, 3)
@@ -350,7 +351,7 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
             start += 1
             plt.imshow(im)
             ax.set_title('features')
-            plt.axis('off')
+            #plt.axis('off')
 
         if ind is not None:
             mng = plt.get_current_fig_manager()
