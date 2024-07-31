@@ -250,7 +250,7 @@ def _vis_minibatch_segmentation(image, depth, label, out_label=None, out_label_r
         # im = im.astype(np.uint8)
 
         im = unnorm(image)[0]
-        im = im.permute(2, 3, 1).detach().cpu().numpy()
+        im = im.permute(1, 2, 0).detach().cpu().numpy()
 
         '''
         if out_label_refined is not None:
