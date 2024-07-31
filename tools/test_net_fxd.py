@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
         network.load_dino(DEVICE)
         network.load_featup("/content/UnseenObjectClustering/data/checkpoints/dinov2_jbu_stack_cocostuff.ckpt", DEVICE)
-        mem_usage(DEVICE)
+        # mem_usage(DEVICE)
         lr_feats_rgb = network.dino(rgb.to(DEVICE))
         hr_feats_rgb = network.featupUpsamplper(lr_feats_rgb.to(DEVICE), rgb.to(DEVICE))
         rgb.detach().cpu()
@@ -81,10 +81,10 @@ if __name__ == '__main__':
             hr_feats_rgb = torch.nn.functional.interpolate(hr_feats_rgb, rgb.shape[2:], mode="bilinear").detach().cpu()
         normalized_hr_features = network.unit_vec_feats(hr_feats_rgb)
         
-        del lr_feats_rgb
-        del hr_feats_rgb
-        torch.cuda.empty_cache()
-        mem_usage(DEVICE)
+        # del lr_feats_rgb
+        # del hr_feats_rgb
+        # torch.cuda.empty_cache()
+        # mem_usage(DEVICE)
 
         out_label, selected_pixels = clustering_features(normalized_hr_features, num_seeds=100)
         out_label_refined = None
@@ -94,24 +94,23 @@ if __name__ == '__main__':
         if rgb_crop.shape[0] > 0:
             
             lr_feats_rgb_crop = network.dino(rgb_crop.to(DEVICE))
-            network.del_dino()
-            mem_usage(DEVICE)
+            # network.del_dino()
+            # mem_usage(DEVICE)
             hr_feats_rgb_crop = network.featupUpsamplper(lr_feats_rgb_crop.to(DEVICE), rgb_crop.to(DEVICE)).detach().cpu()
-            del lr_feats_rgb_crop
-            rgb_crop.detach().cpu()
-            torch.cuda.empty_cache()
-            network.del_featup()
-            mem_usage(DEVICE)
+            # del lr_feats_rgb_crop
+            # rgb_crop.detach().cpu()
+            # torch.cuda.empty_cache()
+            # network.del_featup()
+            # mem_usage(DEVICE)
             if hr_feats_rgb_crop.shape[2] != rgb_crop.shape[2]:
                 hr_feats_rgb_crop = torch.nn.functional.interpolate(hr_feats_rgb_crop, rgb_crop.shape[2:], mode="bilinear").detach().cpu()
             normalize_hr_features_crop = network.unit_vec_feats(hr_feats_rgb_crop)
             labels_crop, selected_pixels_crop = clustering_features(normalize_hr_features_crop)
             out_label_refined, labels_crop = match_label_crop(out_label, labels_crop.to(DEVICE), out_label_crop, rois, depth_crop)
-        
+
+        mem_usage(DEVICE)
         _vis_minibatch_segmentation(rgb, depth, label, out_label, out_label_refined, normalized_hr_features, 
                 selected_pixels=selected_pixels, bbox=None)
-        
-        mem_usage(DEVICE)
         break
 
     # # sum the values with same keys
