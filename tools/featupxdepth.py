@@ -8,11 +8,10 @@ from featup.util import norm, unnorm
 import cv2
 from torchvision.io import read_image
 import numpy as np
-from depth_anything.dpt import DepthAnything
-from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
+# from depth_anything.dpt import DepthAnything
+# from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
 import tempfile
 import torch.nn.functional as F
-from featup.plotting import plot_feats
 
 def networkFxD():
     network = FxD()
@@ -50,7 +49,7 @@ class FxD():
 
     def load_depth(self, path):
         # path to file depth_anything_vitl14.pth
-        self.depth_anything = DepthAnything(self.model_configs[self.encoder])
+        # self.depth_anything = DepthAnything(self.model_configs[self.encoder])
         self.depth_anything.load_state_dict(torch.load(path))
 
     def dino(self, image_tensor):
