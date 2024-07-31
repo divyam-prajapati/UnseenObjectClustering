@@ -23,6 +23,7 @@ from pathlib import Path
 from fcn.config import cfg
 from utils.blob import chromatic_transform, add_noise
 from utils import mask as util_
+from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
 
 
 class OCIDObject(data.Dataset, datasets.imdb):
@@ -117,7 +118,8 @@ class OCIDObject(data.Dataset, datasets.imdb):
             xyz_img = pcloud.reshape((self._height, self._width, 3))
             depth_blob = torch.from_numpy(xyz_img).permute(2, 0, 1)
             sample['depth'] = depth_blob
-
+        
+        
         # RGB IMG - DINO + FEATUP
         image = Image.open(filename).convert('RGB')
         featup_transform = T.Compose([
@@ -127,6 +129,25 @@ class OCIDObject(data.Dataset, datasets.imdb):
             T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
         sample['rgb'] = featup_transform(image)
+
+        # RGB IMG - DEPTH
+        depth_transform = T.Compose([
+            Resize(
+                width=518,
+                height=518,
+                resize_target=False,
+                keep_aspect_ratio=True,
+                ensure_multiple_of=14,
+                resize_method='lower_bound',
+                image_interpolation_method=cv2.INTER_CUBIC,
+            ),
+            NormalizeImage([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            PrepareForNet(),
+        ])
+        dimage = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB) / 255.0
+        dimage = depth_transform({'image': dimage})['image']
+        image_torch = torch.from_numpy(dimage).unsqueeze(0)
+        sample['rgb_depth'] = image_torch
 
         return sample
 
