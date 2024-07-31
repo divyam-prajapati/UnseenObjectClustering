@@ -20,6 +20,7 @@ import random
 import scipy.io
 from torchinfo import summary
 from tqdm import tqdm
+import torchvision.transforms as T
 from sklearn.preprocessing import normalize
 import _init_paths
 from fcn.test_dataset import test_segnet, clustering_features, filter_labels_depth, crop_rois, match_label_crop
@@ -31,7 +32,7 @@ from fcn.test_common import _vis_minibatch_segmentation
 from featupxdepth import networkFxD, mem_usage
 
 if __name__ == '__main__':
-    cfg_from_file("/content/UnseenObjectClustering/experiments/cfgs/seg_resnet34_8s_embedding_cosine_color_tabletop.yml")
+    cfg_from_file("D:/CODE/UnseenObjectClustering/experiments/cfgs/seg_resnet34_8s_embedding_cosine_color_tabletop.yml")
     if len(cfg.TEST.CLASSES) == 0:
         cfg.TEST.CLASSES = cfg.TRAIN.CLASSES
     np.random.seed(cfg.RNG_SEED)
@@ -63,24 +64,42 @@ if __name__ == '__main__':
     network = networkFxD()
     metrics_all=[]
     metrics_all_refined = []
-
-    for i, sample in enumerate(dataloader):
+    with torch.no_grad():
+      for i, sample in enumerate(dataloader):
         image = sample['image_color']
         rgb = sample['rgb']
         depth = None
         label = sample['label']
-        print(f"\n{image.shape=}\t{rgb.shape=}\t{label.shape=}\n")
-
+        # print(sample.keys())
+        img_depth = sample['rgb_depth'][0]
+        print(f"\n{image.shape=}\t{rgb.shape=}\t{label.shape=}\t{img_depth.shape=}\t{sample['depth'].shape=}\n")
+        
         network.load_dino(DEVICE)
-        network.load_featup("/content/UnseenObjectClustering/data/checkpoints/dinov2_jbu_stack_cocostuff.ckpt", DEVICE)
+        network.load_featup("D:/CODE/Unseen-Object-Segmentation/checkpoints/dinov2_jbu_stack_cocostuff.ckpt", DEVICE)
         # mem_usage(DEVICE)
         lr_feats_rgb = network.dino(rgb.to(DEVICE))
         hr_feats_rgb = network.featupUpsamplper(lr_feats_rgb.to(DEVICE), rgb.to(DEVICE))
         rgb.detach().cpu()
         if hr_feats_rgb.shape[2] != rgb.shape[2]:
             hr_feats_rgb = torch.nn.functional.interpolate(hr_feats_rgb, rgb.shape[2:], mode="bilinear").detach().cpu()
-        normalized_hr_features = network.unit_vec_feats(hr_feats_rgb)
         
+        network.load_depth("D:/CODE/Unseen-Object-Segmentation/checkpoints/depth_anything_vitl14.pth")
+        depth_feats = network.depthanything(img_depth, (224,224))
+        
+        featup_transform = T.Compose([
+            T.Resize(224),
+            T.CenterCrop((224, 224)),
+            T.ToTensor(),
+            T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        depth_img = featup_transform(depth_feats)
+        # print(depth_img.shape)
+        lr_feats_depth = network.dino(depth_img.unsqueeze(0).to(DEVICE))
+        hr_feats_depth = network.featupUpsamplper(lr_feats_depth.to(DEVICE), depth_img.unsqueeze(0).to(DEVICE))
+        # print(hr_feats_depth.shape)
+        hr_feats_depth = torch.nn.functional.interpolate(hr_feats_depth, rgb.shape[2:], mode="bilinear").detach().cpu()
+        normalized_hr_features = network.unit_vec_feats(hr_feats_rgb+hr_feats_depth)
+        depth = depth_img.unsqueeze(0)
         # del lr_feats_rgb
         # del hr_feats_rgb
         # torch.cuda.empty_cache()
@@ -88,8 +107,11 @@ if __name__ == '__main__':
 
         out_label, selected_pixels = clustering_features(normalized_hr_features, num_seeds=100)
         out_label_refined = None
+        # rgb_resized = torch.nn.functional.interpolate(rgb, rgb.shape[2:], mode="bilinear")
         rgb_crop, out_label_crop, rois, depth_crop = crop_rois(rgb, out_label.clone(), depth)
         print(f"\n{rgb_crop.shape=}\t{out_label_crop.shape=}\n")
+
+        label = T.Resize(224)(label)
         
         if rgb_crop.shape[0] > 0:
             
