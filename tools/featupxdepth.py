@@ -8,8 +8,8 @@ from featup.util import norm, unnorm
 import cv2
 from torchvision.io import read_image
 import numpy as np
-# from depth_anything.dpt import DepthAnything
-# from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
+from depth_anything.dpt import DepthAnything
+from depth_anything.util.transform import Resize, NormalizeImage, PrepareForNet
 import tempfile
 import torch.nn.functional as F
 
@@ -49,7 +49,7 @@ class FxD():
 
     def load_depth(self, path):
         # path to file depth_anything_vitl14.pth
-        # self.depth_anything = DepthAnything(self.model_configs[self.encoder])
+        self.depth_anything = DepthAnything(self.model_configs[self.encoder])
         self.depth_anything.load_state_dict(torch.load(path))
 
     def dino(self, image_tensor):
@@ -63,7 +63,7 @@ class FxD():
         depthout = self.depth_anything(image_tensor)
         return self.depth_post_processing(depthout,h,w)
     
-    def depth_post_processing(depth_output,h,w):
+    def depth_post_processing(self, depth_output, h, w):
         depth = F.interpolate(depth_output[None], (h, w), mode='bilinear', align_corners=False)[0, 0]
         raw_depth = Image.fromarray(depth.cpu().numpy().astype('uint16'))
         tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
